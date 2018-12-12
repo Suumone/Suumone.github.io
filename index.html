@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+    <meta charset="UTF-8">
+    <script src="jquery.min.js"></script>
+    <link rel="stylesheet" href="bootstrap.min.css">
+</html>
+
+<body>
+    <section id="app" class="container">
+        <section class="jumbotron">
+            <div class="text-center">
+                <a role="button" href="https://oauth.vk.com/authorize?client_id=6780995&redirect_uri=http://localhost/&scope=friends&response_type=token&v=5.8"
+                    class="btn col-sm-4 btn-outline-primary btn-lg" id="btn">
+                    Авторизоваться
+                </a>
+            </div>
+            <section class="container">
+                <h2 id="username" class="text-center" style="display: none"></h2>
+                <hr>
+                <div id="friends" class="form-row"></div>
+            </section>
+        </section>
+    </section>
+    <ul>
+
+    </ul>
+    <script>
+        if (location.hash.indexOf("#access_token=") === 0) {
+            localStorage.token = location.hash.substring(14, 99);
+            localStorage.session = Date.now() + 86400;
+            location.hash = "";
+        }
+        if (Date.now() <= parseInt(localStorage.session)) {
+            $("#btn").hide();            
+            send('friends.get', {
+                count: 5,
+                fields: 'photo_100'
+            }, function (data) {
+                console.log(data);
+                render(data.response);
+            });
+
+            send('users.get', {}, function (data) {
+                const btn =
+                    '<button type="button" onclick="localStorage.clear(); location.reload();" class="btn btn-dark">Выйти</button>';
+                $('#username').html('Привет, ' + data.response[0].first_name + ' ' + data.response[0].last_name +
+                    '! ' + btn).show();
+            });
+        }
+
+        function Url(method, params) {
+            params = params || {};
+            params['access_token'] = localStorage.token;
+            return 'https://api.vk.com/method/' + method + '?v=5.52&' + $.param(params);
+        }
+
+        function send(method, params, callback) {
+            $.ajax({
+                url: Url(method, params),
+                method: "GET",
+                dataType: "JSONP",
+                success: callback
+            });
+        }
+        function render(response) {
+            let html = '';
+            for (let i = 0; i < response.items.length; i++) {
+                let f = response;
+                html += "<div class=\"card col-sm\">" +
+                    "<img class=\"card-img-top\" src=\"" + f.items[i].photo_100 + "\">" +
+                    "<div class=\"card-body\">" +
+                    "<h5 class=\"card-text\">" + f.items[i].first_name + ' ' + f.items[i].last_name + "</h5>" +
+                    "</div>" +
+                    "</div>";
+            }
+            $("#friends").html(html);
+        }
+    </script>
+
+</body>
